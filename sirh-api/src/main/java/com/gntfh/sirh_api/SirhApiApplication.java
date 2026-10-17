@@ -2,12 +2,13 @@ package com.gntfh.sirh_api;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 @SpringBootApplication
+@ConfigurationPropertiesScan
 public class SirhApiApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(SirhApiApplication.class, args);
-	}
-
+    public static void main(String[] args) {
+        SpringApplication.run(SirhApiApplication.class, args);
+    }
 }
