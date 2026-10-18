@@ -1,0 +1,159 @@
+# =====================================================================
+# SIRH - .gitignore racine
+# API Spring Boot (Maven) + Front Vue.js + Front Kotlin (Android)
+# Éditeurs / outils : VS Code, Zed, Devin (+ IntelliJ / Android Studio)
+# =====================================================================
+
+# ---------- Système d'exploitation ----------
+.DS_Store
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.directory
+.Trash-*
+*~
+*.swp
+*.swo
+.#*
+
+# ---------- Secrets et configuration locale ----------
+.env
+.env.*
+!.env.example
+*.local
+**/application.properties
+**/application-local.yml
+**/application-local.yaml
+**/application-secret*.*
+secrets.properties
+keystore.properties
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+# Clé Firebase (notifications push mobile), à retirer si tu veux la versionner
+google-services.json
+
+# ---------- Logs et fichiers temporaires ----------
+logs/
+*.log
+*.pid
+*.tmp
+*.bak
+*.orig
+*.rej
+*.hprof
+
+# ---------- API : Java / Spring Boot / Maven (sirh-api) ----------
+# Le wrapper Maven (mvnw, mvnw.cmd, .mvn/) doit rester versionné
+target/
+!**/src/main/**/target/
+!**/src/test/**/target/
+HELP.md
+*.class
+*.war
+*.ear
+hs_err_pid*
+replay_pid*
+# Documents uploadés par l'application (CV, contrats, PDF) = sirh.storage.location
+**/uploads/
+# Données PostgreSQL locales éventuelles
+pgdata/
+*.dump
+
+# ---------- Front web : Vue.js / Node ----------
+# Les lockfiles (package-lock.json, pnpm-lock.yaml) doivent rester versionnés
+node_modules/
+.pnp
+.pnp.js
+.npm/
+.pnpm-store/
+dist/
+dist-ssr/
+coverage/
+.nyc_output/
+.vite/
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+*.timestamp-*-*.mjs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+__screenshots__/
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+cypress/videos/
+cypress/screenshots/
+
+# ---------- Front mobile : Kotlin / Android / Gradle ----------
+# Le wrapper Gradle (gradlew, gradle/wrapper/) doit rester versionné
+**/.gradle/
+**/build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+local.properties
+.kotlin/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# ---------- IntelliJ IDEA / Android Studio ----------
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+# ---------- Eclipse / Spring Tools ----------
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+# ---------- VS Code ----------
+# On ignore tout le dossier sauf la config utile à toute l'équipe
+# (retire les lignes "!" que tu ne veux pas partager)
+**/.vscode/*
+!**/.vscode/extensions.json
+!**/.vscode/settings.json
+!**/.vscode/launch.json
+!**/.vscode/tasks.json
+.vscode-test/
+.history/
+# Fichiers *.code-workspace volontairement versionnés (utile pour ouvrir api + 2 fronts)
+
+# ---------- Zed ----------
+# Seuls les réglages de projet partageables sont versionnés
+**/.zed/*
+!**/.zed/settings.json
+!**/.zed/tasks.json
+!**/.zed/debug.json
+
+# ---------- Devin (Cognition) ----------
+# Versionnés : AGENTS.md, .cognition/config.json, .cognition/skills/, .devin/rules/
+# Ignorés : surcharges personnelles
+**/.cognition/*.local.*
+**/.devin/*.local.*

@@ -1,2 +1,10 @@
-# P.GESTION.ENTREPRISE
-PROJET GESTION ENTREPRISE MR TOVO 
+# P.GESTION.RH
+
+PROJET GESTION RH MR TOVO
+Membres :
+
+- Goldman
+- Tiavina
+- Nandrandraina
+- Hery
+- Fiantso
