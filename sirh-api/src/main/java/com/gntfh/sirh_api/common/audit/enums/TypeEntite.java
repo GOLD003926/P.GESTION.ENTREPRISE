@@ -1,0 +1,22 @@
+package com.gntfh.sirh_api.common.audit.enums;
+
+public enum TypeEntite {
+    UTILISATEUR,
+    DEPARTEMENT,
+    GRILLE_SALARIALE,
+    POSTE,
+    DEMANDE_RECRUTEMENT,
+    VALIDATION,
+    OFFRE_EMPLOI,
+    CANDIDAT,
+    CANDIDATURE,
+    ENTRETIEN,
+    EVALUATION_CANDIDAT,
+    PROPOSITION_EMBAUCHE,
+    EMPLOYE,
+    AFFECTATION,
+    CONTRAT,
+    MODELE_ONBOARDING,
+    ONBOARDING,
+    ONBOARDING_TACHE
+}
