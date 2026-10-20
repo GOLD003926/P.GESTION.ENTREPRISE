@@ -19,6 +19,12 @@ public record PosteUpdateRequest(
         @Size(max = 4000, message = "Les compétences requises ne peuvent pas dépasser 4000 caractères")
         String competencesRequises,
 
+        @NotNull(message = "Le département est obligatoire")
+        Long departementId,
+
+        @NotNull(message = "La grille salariale est obligatoire")
+        Long grilleSalarialeId,
+
         @NotNull(message = "L'effectif autorisé est obligatoire")
         @Min(value = 1, message = "L'effectif autorisé doit être d'au moins 1")
         @Max(value = 1000, message = "L'effectif autorisé ne peut pas dépasser 1000")

@@ -35,11 +35,17 @@ public class AuditService {
 
         try {
             valeursAvant = avant != null ? jsonMapper.writeValueAsString(avant) : null;
-            valeursApres = apres != null ? jsonMapper.writeValueAsString(apres) : null;
         } catch (JsonProcessingException e) {
             log.warn("Erreur lors de la sérialisation JSON pour l'audit (action: {}, entite: {}, entiteId: {}, auteur: {})",
                     action, type, entiteId, auteur);
             valeursAvant = "{\"erreur\":\"serialisation\"}";
+        }
+
+        try {
+            valeursApres = apres != null ? jsonMapper.writeValueAsString(apres) : null;
+        } catch (JsonProcessingException e) {
+            log.warn("Erreur lors de la sérialisation JSON pour l'audit (action: {}, entite: {}, entiteId: {}, auteur: {})",
+                    action, type, entiteId, auteur);
             valeursApres = "{\"erreur\":\"serialisation\"}";
         }
 

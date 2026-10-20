@@ -18,6 +18,9 @@ public record DepartementRequest(
         @Size(max = 150, message = "Le nom ne peut pas dépasser 150 caractères")
         String nom,
 
+        @Positive(message = "L'identifiant du département parent doit être positif")
+        Long departementParentId,
+
         @Positive(message = "L'identifiant du responsable doit être positif")
         Long responsableId
 ) {

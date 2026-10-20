@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 
 /**
  * Mapper pour l'entité Poste.
- * Note : les relations departement et grilleSalariale sont gérées par le service.
+ * Note : les relations departement et grilleSalariale sont gérées par le service (le service charge les entités à partir des IDs).
  */
 @Component
 public class PosteMapper {

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Mapper pour l'entité Departement.
+ * Note : la relation departementParent est gérée par le service (le service charge l'entité parente à partir de l'ID).
  */
 @Component
 public class DepartementMapper {

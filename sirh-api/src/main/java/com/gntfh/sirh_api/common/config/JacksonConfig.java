@@ -8,6 +8,8 @@ import org.springframework.context.annotation.Configuration;
  * Configuration Jackson pour la sérialisation JSON.
  * Fournit un bean JsonMapper utilisé par AuditService pour sérialiser
  * les valeurs avant/après dans le journal d'audit.
+ * Le bean nommé "jsonMapper" ne remplace pas le ObjectMapper auto-configuré
+ * par Spring MVC pour les réponses HTTP.
  */
 @Configuration
 public class JacksonConfig {
