@@ -29,7 +29,7 @@ public class GrilleSalarialeController {
     private final GrilleSalarialeService service;
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('RH', 'MANAGER', 'FINANCE', 'DG', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('RH', 'MANAGER', 'FINANCE', 'DG', 'ADMIN')")
     @Operation(summary = "Lister les grilles salariales")
     public ResponseEntity<PageResponse<GrilleSalarialeResponse>> rechercher(
             @RequestParam(required = false) String q,
@@ -40,7 +40,7 @@ public class GrilleSalarialeController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('RH', 'MANAGER', 'FINANCE', 'DG', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('RH', 'MANAGER', 'FINANCE', 'DG', 'ADMIN')")
     @Operation(summary = "Obtenir une grille salariale")
     public ResponseEntity<GrilleSalarialeResponse> obtenir(@PathVariable Long id) {
         GrilleSalarialeResponse response = service.obtenir(id);
@@ -48,7 +48,7 @@ public class GrilleSalarialeController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('RH', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('RH', 'ADMIN')")
     @Operation(summary = "Créer une grille salariale")
     public ResponseEntity<GrilleSalarialeResponse> creer(@Valid @RequestBody GrilleSalarialeRequest request) {
         GrilleSalarialeResponse response = service.creer(request);
@@ -56,7 +56,7 @@ public class GrilleSalarialeController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('RH', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('RH', 'ADMIN')")
     @Operation(summary = "Modifier une grille salariale")
     public ResponseEntity<GrilleSalarialeResponse> modifier(
             @PathVariable Long id,
@@ -66,7 +66,7 @@ public class GrilleSalarialeController {
     }
 
     @PostMapping("/{id}/activer")
-    @PreAuthorize("hasAnyAuthority('RH', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('RH', 'ADMIN')")
     @Operation(summary = "Activer une grille salariale")
     public ResponseEntity<GrilleSalarialeResponse> activer(@PathVariable Long id) {
         GrilleSalarialeResponse response = service.activer(id);
@@ -74,7 +74,7 @@ public class GrilleSalarialeController {
     }
 
     @PostMapping("/{id}/desactiver")
-    @PreAuthorize("hasAnyAuthority('RH', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('RH', 'ADMIN')")
     @Operation(summary = "Désactiver une grille salariale")
     public ResponseEntity<GrilleSalarialeResponse> desactiver(@PathVariable Long id) {
         GrilleSalarialeResponse response = service.desactiver(id);

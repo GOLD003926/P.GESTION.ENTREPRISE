@@ -28,7 +28,7 @@ public class PosteController {
     private final PosteService service;
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('RH', 'MANAGER', 'FINANCE', 'DG', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('RH', 'MANAGER', 'FINANCE', 'DG', 'ADMIN')")
     @Operation(summary = "Lister les postes")
     public ResponseEntity<PageResponse<PosteResponse>> rechercher(
             @RequestParam(required = false) String q,
@@ -41,7 +41,7 @@ public class PosteController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('RH', 'MANAGER', 'FINANCE', 'DG', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('RH', 'MANAGER', 'FINANCE', 'DG', 'ADMIN')")
     @Operation(summary = "Obtenir un poste avec occupation")
     public ResponseEntity<PosteResponse> obtenir(@PathVariable Long id) {
         PosteResponse response = service.obtenir(id);
@@ -49,7 +49,7 @@ public class PosteController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('RH')")
+    @PreAuthorize("hasRole('RH')")
     @Operation(summary = "Créer un poste")
     public ResponseEntity<PosteResponse> creer(@Valid @RequestBody PosteRequest request) {
         PosteResponse response = service.creer(request);
@@ -57,7 +57,7 @@ public class PosteController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('RH')")
+    @PreAuthorize("hasRole('RH')")
     @Operation(summary = "Modifier un poste")
     public ResponseEntity<PosteResponse> modifier(
             @PathVariable Long id,
@@ -67,7 +67,7 @@ public class PosteController {
     }
 
     @PostMapping("/{id}/activer")
-    @PreAuthorize("hasAuthority('RH')")
+    @PreAuthorize("hasRole('RH')")
     @Operation(summary = "Activer un poste")
     public ResponseEntity<PosteResponse> activer(@PathVariable Long id) {
         PosteResponse response = service.activer(id);
@@ -75,7 +75,7 @@ public class PosteController {
     }
 
     @PostMapping("/{id}/desactiver")
-    @PreAuthorize("hasAuthority('RH')")
+    @PreAuthorize("hasRole('RH')")
     @Operation(summary = "Désactiver un poste")
     public ResponseEntity<PosteResponse> desactiver(@PathVariable Long id) {
         PosteResponse response = service.desactiver(id);

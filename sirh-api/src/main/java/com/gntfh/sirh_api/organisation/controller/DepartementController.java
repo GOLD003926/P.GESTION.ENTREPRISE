@@ -28,7 +28,7 @@ public class DepartementController {
     private final DepartementService service;
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('RH', 'MANAGER', 'FINANCE', 'DG', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('RH', 'MANAGER', 'FINANCE', 'DG', 'ADMIN')")
     @Operation(summary = "Lister les départements")
     public ResponseEntity<PageResponse<DepartementResponse>> rechercher(
             @RequestParam(required = false) String q,
@@ -40,7 +40,7 @@ public class DepartementController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('RH', 'MANAGER', 'FINANCE', 'DG', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('RH', 'MANAGER', 'FINANCE', 'DG', 'ADMIN')")
     @Operation(summary = "Obtenir un département")
     public ResponseEntity<DepartementResponse> obtenir(@PathVariable Long id) {
         DepartementResponse response = service.obtenir(id);
@@ -48,7 +48,7 @@ public class DepartementController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('RH', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('RH', 'ADMIN')")
     @Operation(summary = "Créer un département")
     public ResponseEntity<DepartementResponse> creer(@Valid @RequestBody DepartementRequest request) {
         DepartementResponse response = service.creer(request);
@@ -56,7 +56,7 @@ public class DepartementController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('RH', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('RH', 'ADMIN')")
     @Operation(summary = "Modifier un département")
     public ResponseEntity<DepartementResponse> modifier(
             @PathVariable Long id,
@@ -66,7 +66,7 @@ public class DepartementController {
     }
 
     @PostMapping("/{id}/activer")
-    @PreAuthorize("hasAnyAuthority('RH', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('RH', 'ADMIN')")
     @Operation(summary = "Activer un département")
     public ResponseEntity<DepartementResponse> activer(@PathVariable Long id) {
         DepartementResponse response = service.activer(id);
@@ -74,7 +74,7 @@ public class DepartementController {
     }
 
     @PostMapping("/{id}/desactiver")
-    @PreAuthorize("hasAnyAuthority('RH', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('RH', 'ADMIN')")
     @Operation(summary = "Désactiver un département")
     public ResponseEntity<DepartementResponse> desactiver(@PathVariable Long id) {
         DepartementResponse response = service.desactiver(id);
