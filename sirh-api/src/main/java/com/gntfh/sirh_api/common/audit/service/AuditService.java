@@ -1,5 +1,7 @@
 package com.gntfh.sirh_api.common.audit.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.gntfh.sirh_api.common.audit.dto.JournalAuditResponse;
 import com.gntfh.sirh_api.common.audit.entity.JournalAudit;
 import com.gntfh.sirh_api.common.audit.enums.ActionAudit;
@@ -24,11 +26,22 @@ import java.time.Instant;
 public class AuditService {
 
     private final JournalAuditRepository journalAuditRepository;
+    private final JsonMapper jsonMapper;
 
     @Transactional
     public void journaliser(ActionAudit action, TypeEntite type, Long entiteId, Object avant, Object apres, String auteur) {
-        String valeursAvant = avant != null ? avant.toString() : null;
-        String valeursApres = apres != null ? apres.toString() : null;
+        String valeursAvant = null;
+        String valeursApres = null;
+
+        try {
+            valeursAvant = avant != null ? jsonMapper.writeValueAsString(avant) : null;
+            valeursApres = apres != null ? jsonMapper.writeValueAsString(apres) : null;
+        } catch (JsonProcessingException e) {
+            log.warn("Erreur lors de la sérialisation JSON pour l'audit (action: {}, entite: {}, entiteId: {}, auteur: {})",
+                    action, type, entiteId, auteur);
+            valeursAvant = "{\"erreur\":\"serialisation\"}";
+            valeursApres = "{\"erreur\":\"serialisation\"}";
+        }
 
         JournalAudit journal = JournalAudit.builder()
                 .entiteType(type.name())
