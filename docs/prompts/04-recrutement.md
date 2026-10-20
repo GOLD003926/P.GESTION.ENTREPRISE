@@ -37,7 +37,7 @@ Générer le module `recrutement` : offres, candidats, candidatures, entretiens 
 ## Vérifications
 
 1. Recréer la base puis démarrer : migrations `V1` à `V5` (et suivantes vides) appliquées, schéma validé.
-2. Swagger : les 33 endpoints de la section 6 sont présents avec la bonne sécurité.
+2. Swagger : les 32 endpoints de la section 6 sont présents avec la bonne sécurité.
 3. Les index partiels de la migration sont bien créés (consulter `\d entretien` et `\d evaluation_candidat` dans `psql`).
 4. Chaque règle `RG-14` à `RG-25`, `REC-01` à `REC-10` apparaît dans la Javadoc d'une méthode de service.
 
