@@ -43,6 +43,7 @@ public class GrilleSalariale extends AuditableEntity {
     private Boolean actif = true;
 
     @Builder
+    @SuppressWarnings("java:S2637")
     private GrilleSalariale(String code, String intitule, String niveau, BigDecimal salaireMin, BigDecimal salaireMax, String devise, Boolean actif) {
         this.code = code;
         this.intitule = intitule;

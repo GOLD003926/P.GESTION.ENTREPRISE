@@ -36,6 +36,7 @@ public class Departement extends AuditableEntity {
     private Boolean actif = true;
 
     @Builder
+    @SuppressWarnings("java:S2637")
     private Departement(String code, String nom, Departement departementParent, Long responsableId, Boolean actif) {
         this.code = code;
         this.nom = nom;
