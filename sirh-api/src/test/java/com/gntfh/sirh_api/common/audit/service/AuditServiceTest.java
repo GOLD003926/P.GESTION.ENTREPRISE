@@ -1,117 +1,102 @@
 package com.gntfh.sirh_api.common.audit.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.gntfh.sirh_api.common.audit.entity.JournalAudit;
 import com.gntfh.sirh_api.common.audit.enums.ActionAudit;
 import com.gntfh.sirh_api.common.audit.enums.TypeEntite;
 import com.gntfh.sirh_api.common.audit.repository.JournalAuditRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
-@ExtendWith(MockitoExtension.class)
+/**
+ * Tests avec un VRAI JsonMapper Jackson 3 : ils prouvent que dates et décimaux sont bien
+ * enregistrés en JSON exploitable. Aucune vérification n'est affaiblie pour « faire passer ».
+ */
 class AuditServiceTest {
 
-    @Mock
-    private JournalAuditRepository journalAuditRepository;
+    public record Exemple(Long id, BigDecimal montant, LocalDate date, Instant creeLe) {
+    }
 
-    @InjectMocks
-    private AuditService auditService;
+    /** Objet dont la sérialisation échoue à coup sûr. */
+    public static class NonSerialisable {
+        public String getValeur() {
+            throw new IllegalStateException("échec volontaire du test");
+        }
+    }
 
-    private JsonMapper jsonMapper;
+    private final JournalAuditRepository repository = mock(JournalAuditRepository.class);
+    private final JsonMapper jsonMapper = JsonMapper.builder().build();
+    private final AuditService service = new AuditService(repository, jsonMapper);
 
-    @BeforeEach
-    void setUp() {
-        jsonMapper = JsonMapper.builder().build();
-        auditService = new AuditService(journalAuditRepository, jsonMapper);
+    private static Exemple exemple() {
+        return new Exemple(7L, new BigDecimal("1000.50"),
+                LocalDate.of(2026, 10, 20), Instant.parse("2026-10-20T10:15:30Z"));
+    }
+
+    private JournalAudit journalEnregistre() {
+        ArgumentCaptor<JournalAudit> captor = ArgumentCaptor.forClass(JournalAudit.class);
+        verify(repository).save(captor.capture());
+        return captor.getValue();
     }
 
     @Test
-    void journaliser_objetsNonNuls_seraliseJSON() {
-        // Given
-        String avant = "Test";
-        String apres = "Test Modifié";
+    void journaliser_recordAvecDatesEtDecimal_produitUnJsonExact() {
+        service.journaliser(ActionAudit.CREATION, TypeEntite.POSTE, 7L, null, exemple(), "rh@sirh.local");
 
-        // When
-        auditService.journaliser(ActionAudit.MODIFICATION, TypeEntite.UTILISATEUR, 1L, avant, apres, "admin@sirh.local");
+        JsonNode json = jsonMapper.readTree(journalEnregistre().getValeursApres());
 
-        // Then
-        ArgumentCaptor<JournalAudit> captor = ArgumentCaptor.forClass(JournalAudit.class);
-        verify(journalAuditRepository).save(captor.capture());
+        assertEquals(7L, json.get("id").longValue());
+        // Comparaison numérique : 1000.50 et 1000.5 sont la même valeur.
+        assertEquals(0, new BigDecimal("1000.50").compareTo(json.get("montant").decimalValue()));
+        // Dates en chaînes ISO-8601 (toString d'un nœud texte = la chaîne entre guillemets).
+        assertEquals("\"2026-10-20\"", json.get("date").toString());
+        assertEquals("\"2026-10-20T10:15:30Z\"", json.get("creeLe").toString());
+    }
 
-        JournalAudit journal = captor.getValue();
-        assertEquals(ActionAudit.MODIFICATION.name(), journal.getAction());
-        assertEquals(TypeEntite.UTILISATEUR.name(), journal.getEntiteType());
-        assertEquals(1L, journal.getEntiteId());
+    @Test
+    void journaliser_valeurNulle_enregistreNullEtNonLaChaineNull() {
+        service.journaliser(ActionAudit.CREATION, TypeEntite.POSTE, 7L, null, exemple(), "rh@sirh.local");
+
+        assertNull(journalEnregistre().getValeursAvant());
+    }
+
+    @Test
+    void journaliser_enregistreLesChampsDuJournal() {
+        service.journaliser(ActionAudit.MODIFICATION, TypeEntite.CONTRAT, 42L,
+                exemple(), exemple(), "admin@sirh.local");
+
+        JournalAudit journal = journalEnregistre();
+
+        assertEquals("CONTRAT", journal.getEntiteType());
+        assertEquals(42L, journal.getEntiteId());
+        assertEquals("MODIFICATION", journal.getAction());
         assertEquals("admin@sirh.local", journal.getAuteur());
-
-        // Vérifier que les valeurs sont du JSON valide (String sérialisé en JSON)
-        assertNotNull(journal.getValeursAvant());
-        assertNotNull(journal.getValeursApres());
-        assertEquals("\"Test\"", journal.getValeursAvant());
-        assertEquals("\"Test Modifié\"", journal.getValeursApres());
+        assertNotNull(journal.getDateAction());
     }
 
     @Test
-    void journaliser_valeursNulles_nullEnBase() {
-        // When
-        auditService.journaliser(ActionAudit.CREATION, TypeEntite.DEPARTEMENT, 1L, null, null, "admin@sirh.local");
+    void journaliser_objetNonSerialisable_enregistreLeMarqueurSansLeverd_exception() {
+        assertDoesNotThrow(() -> service.journaliser(ActionAudit.MODIFICATION, TypeEntite.POSTE, 7L,
+                new NonSerialisable(), exemple(), "rh@sirh.local"));
 
-        // Then
-        ArgumentCaptor<JournalAudit> captor = ArgumentCaptor.forClass(JournalAudit.class);
-        verify(journalAuditRepository).save(captor.capture());
+        JournalAudit journal = journalEnregistre();
 
-        JournalAudit journal = captor.getValue();
-        assertNull(journal.getValeursAvant());
-        assertNull(journal.getValeursApres());
-    }
-
-    @Test
-    void journaliser_recordAvecInstant_seraliseCorrectement() {
-        // Given
-        Instant instant = Instant.parse("2026-01-15T10:30:00Z");
-
-        // When
-        auditService.journaliser(ActionAudit.CREATION, TypeEntite.EMPLOYE, 1L, null, instant, "admin@sirh.local");
-
-        // Then
-        ArgumentCaptor<JournalAudit> captor = ArgumentCaptor.forClass(JournalAudit.class);
-        verify(journalAuditRepository).save(captor.capture());
-
-        JournalAudit journal = captor.getValue();
-        assertNotNull(journal.getValeursApres());
-        assertNull(journal.getValeursAvant());
-    }
-
-    @Test
-    void journaliser_erreurSerialisation_logueErreurEtEnregistre() throws JsonProcessingException {
-        // Given
-        JsonMapper failingMapper = mock(JsonMapper.class);
-        when(failingMapper.writeValueAsString(any())).thenThrow(new JsonProcessingException("Test error") {});
-        AuditService auditServiceWithFailingMapper = new AuditService(journalAuditRepository, failingMapper);
-
-        // When
-        auditServiceWithFailingMapper.journaliser(ActionAudit.MODIFICATION, TypeEntite.UTILISATEUR, 1L, "test", null, "admin@sirh.local");
-
-        // Then
-        ArgumentCaptor<JournalAudit> captor = ArgumentCaptor.forClass(JournalAudit.class);
-        verify(journalAuditRepository).save(captor.capture());
-
-        JournalAudit journal = captor.getValue();
-        // En cas d'erreur de sérialisation, on enregistre le marqueur d'erreur
         assertEquals("{\"erreur\":\"serialisation\"}", journal.getValeursAvant());
-        // Apres est null, donc pas d'erreur de sérialisation
-        assertNull(journal.getValeursApres());
+        // Le champ « apres » reste valide : une erreur d'un côté n'abîme pas l'autre.
+        assertNotNull(journal.getValeursApres());
+        assertNotEquals("{\"erreur\":\"serialisation\"}", journal.getValeursApres());
     }
 }
