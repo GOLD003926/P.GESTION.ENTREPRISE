@@ -46,6 +46,7 @@ public class Poste extends AuditableEntity {
     private Boolean actif = true;
 
     @Builder
+    @SuppressWarnings("java:S2637")
     private Poste(String code, String intitule, String description, String competencesRequises,
                   Departement departement, GrilleSalariale grilleSalariale, Integer effectifAutorise, Boolean actif) {
         this.code = code;
