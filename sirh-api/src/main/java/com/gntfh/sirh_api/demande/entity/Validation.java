@@ -1,7 +1,7 @@
 package com.gntfh.sirh_api.demande.entity;
 
 import com.gntfh.sirh_api.auth.entity.Utilisateur;
-import com.gntfh.sirh_api.common.entity.BaseEntity;
+import com.gntfh.sirh_api.common.entity.AuditableEntity;
 import com.gntfh.sirh_api.demande.enums.DecisionValidation;
 import com.gntfh.sirh_api.demande.enums.RoleValidateur;
 import jakarta.persistence.*;
@@ -20,7 +20,7 @@ import java.time.Instant;
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Validation extends BaseEntity {
+public class Validation extends AuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "demande_id", nullable = false)

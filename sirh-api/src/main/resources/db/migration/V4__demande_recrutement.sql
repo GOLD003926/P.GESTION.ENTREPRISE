@@ -3,7 +3,7 @@
 
 -- Table demande_recrutement
 CREATE TABLE demande_recrutement (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     version BIGINT NOT NULL DEFAULT 0,
     reference VARCHAR(30) NOT NULL UNIQUE,
     poste_id BIGINT NOT NULL,
@@ -47,7 +47,7 @@ ALTER TABLE demande_recrutement
 
 -- Table validation
 CREATE TABLE validation (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     version BIGINT NOT NULL DEFAULT 0,
     demande_id BIGINT NOT NULL,
     cycle INT NOT NULL,
@@ -57,6 +57,10 @@ CREATE TABLE validation (
     decision VARCHAR(20) NOT NULL DEFAULT 'EN_ATTENTE' CHECK (decision IN ('EN_ATTENTE', 'APPROUVEE', 'REJETEE', 'RETOURNEE')),
     commentaire TEXT,
     date_decision TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL,
+    created_by VARCHAR(150) NOT NULL,
+    updated_by VARCHAR(150) NOT NULL,
     CONSTRAINT uk_validation_demande_cycle_ordre UNIQUE (demande_id, cycle, ordre)
 );
 
