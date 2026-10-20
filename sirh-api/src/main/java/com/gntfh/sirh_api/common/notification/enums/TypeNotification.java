@@ -1,1 +1,15 @@
 package com.gntfh.sirh_api.common.notification.enums;
+
+public enum TypeNotification {
+    DEMANDE_A_VALIDER,
+    DEMANDE_DECISION,
+    ENTRETIEN_PLANIFIE,
+    EVALUATION_DEMANDEE,
+    CANDIDATURE_DECISION,
+    PROPOSITION_ENVOYEE,
+    PROPOSITION_REPONDUE,
+    PROPOSITION_EXPIREE,
+    ONBOARDING_TACHE_ASSIGNEE,
+    CONTRAT_ECHEANCE,
+    AUTRE
+}

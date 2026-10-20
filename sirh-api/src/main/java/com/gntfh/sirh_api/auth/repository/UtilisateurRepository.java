@@ -5,6 +5,7 @@ import com.gntfh.sirh_api.auth.enums.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -19,4 +20,6 @@ public interface UtilisateurRepository
     boolean existsByEmailIgnoreCase(String email);
 
     boolean existsByRole(Role role);
+
+    List<Utilisateur> findByRoleAndActifTrue(Role role);
 }
