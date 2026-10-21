@@ -2,4 +2,6 @@
 export const ROUTE_NAMES = Object.freeze({
   LOGIN: 'login',
   DASHBOARD: 'dashboard',
+  FORBIDDEN: 'forbidden',
+  NOT_FOUND: 'not-found',
 })

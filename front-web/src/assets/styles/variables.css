@@ -3,6 +3,12 @@
   --color-primary: #0f5b8e;
   --color-primary-hover: #0c4a74;
   --color-on-primary: #ffffff;
+  --color-sidebar: #0f5b8e;
+  --color-sidebar-hover: #0c4a74;
+  --color-sidebar-text: #ffffff;
+  --color-sidebar-muted: #d6e2ee;
+  --color-sidebar-active: #ffffff;
+  --color-overlay: rgb(15 23 42 / 0.4);
 
   /* Identité visuelle (panneau d'image, accents) */
   --color-brand-900: #0c2d4d;
