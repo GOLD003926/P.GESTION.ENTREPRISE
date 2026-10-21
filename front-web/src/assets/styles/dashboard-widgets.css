@@ -1,0 +1,123 @@
+.widget {
+  min-width: 0;
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.widget__header,
+.widget__item-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.widget__eyebrow {
+  margin: 0 0 var(--space-1);
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.widget h3 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-lg);
+}
+
+.widget__count {
+  min-width: 2rem;
+  padding: var(--space-1) var(--space-2);
+  border-radius: 999px;
+  background: var(--color-info-soft);
+  color: var(--color-info);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-align: center;
+}
+
+.widget__count--warning {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.widget__list {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.widget__item {
+  display: grid;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.widget__item-main {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.widget__item-main strong {
+  color: var(--color-text);
+}
+
+.widget__item-main span,
+.widget__item-meta,
+.widget__message,
+.widget__footnote {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.widget__item-meta {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.widget__late {
+  color: var(--color-danger);
+  font-weight: var(--font-weight-semibold);
+}
+
+.widget__status {
+  padding: var(--space-1) var(--space-2);
+  border-radius: 999px;
+  background: var(--color-bg);
+}
+
+.widget__message,
+.widget__footnote {
+  margin: var(--space-4) 0 0;
+}
+
+.widget__error {
+  margin-top: var(--space-4);
+  color: var(--color-danger);
+}
+
+.widget__error p {
+  margin: 0;
+}
+
+.widget__retry {
+  min-height: var(--control-height);
+  margin-top: var(--space-2);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  cursor: pointer;
+}
+
+.widget__retry:focus-visible {
+  outline: 3px solid var(--color-focus-ring-danger);
+  outline-offset: 2px;
+}
