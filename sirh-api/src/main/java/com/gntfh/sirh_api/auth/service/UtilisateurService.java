@@ -12,6 +12,7 @@ import com.gntfh.sirh_api.common.dto.PageResponse;
 import com.gntfh.sirh_api.common.exception.BusinessRuleException;
 import com.gntfh.sirh_api.common.exception.DuplicateResourceException;
 import com.gntfh.sirh_api.common.exception.ResourceNotFoundException;
+import com.gntfh.sirh_api.employe.repository.EmployeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -43,6 +44,7 @@ public class UtilisateurService {
     private final UtilisateurRepository utilisateurRepository;
     private final PasswordEncoder passwordEncoder;
     private final UtilisateurMapper utilisateurMapper;
+    private final EmployeRepository employeRepository;
 
     @Transactional(readOnly = true)
     public PageResponse<UtilisateurResponse> rechercher(String q, Role role, Boolean actif, Pageable pageable) {
@@ -79,6 +81,9 @@ public class UtilisateurService {
         if (utilisateurRepository.existsByEmailIgnoreCase(email)) {
             throw DuplicateResourceException.of("Un utilisateur", "l'email", email);
         }
+        if (request.employeId() != null && !employeRepository.existsById(request.employeId())) {
+            throw ResourceNotFoundException.of("Employe", request.employeId());
+        }
         Utilisateur utilisateur = utilisateurMapper.toEntity(request, passwordEncoder.encode(request.motDePasse()));
         return utilisateurMapper.toResponse(utilisateurRepository.save(utilisateur));
     }
@@ -88,6 +93,9 @@ public class UtilisateurService {
         Utilisateur utilisateur = trouver(id);
         if (estActeur(utilisateur, acteurEmail) && utilisateur.getRole() != request.role()) {
             throw new BusinessRuleException("Vous ne pouvez pas modifier votre propre rôle.");
+        }
+        if (request.employeId() != null && !employeRepository.existsById(request.employeId())) {
+            throw ResourceNotFoundException.of("Employe", request.employeId());
         }
         utilisateurMapper.updateEntity(request, utilisateur);
         return utilisateurMapper.toResponse(utilisateur);
