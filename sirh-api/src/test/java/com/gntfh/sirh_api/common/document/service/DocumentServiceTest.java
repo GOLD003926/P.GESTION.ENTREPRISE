@@ -1,5 +1,6 @@
 package com.gntfh.sirh_api.common.document.service;
 
+import com.gntfh.sirh_api.common.exception.BusinessRuleException;
 import com.gntfh.sirh_api.common.audit.enums.TypeEntite;
 import com.gntfh.sirh_api.common.document.entity.Document;
 import com.gntfh.sirh_api.common.document.enums.TypeDocument;
@@ -54,7 +55,7 @@ class DocumentServiceTest {
                 new byte[0]
         );
 
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(BusinessRuleException.class, () ->
                 documentService.enregistrer(fichierVide, TypeDocument.CV, TypeEntite.CANDIDAT, 1L)
         );
     }
@@ -68,7 +69,7 @@ class DocumentServiceTest {
                 "contenu".getBytes()
         );
 
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(BusinessRuleException.class, () ->
                 documentService.enregistrer(fichierInterdit, TypeDocument.CV, TypeEntite.CANDIDAT, 1L)
         );
     }
@@ -87,7 +88,7 @@ class DocumentServiceTest {
 
         assertEquals(1, document.getNumeroVersion());
         assertFalse(document.isArchive());
-        verify(documentRepository, never()).save(any(Document.class));
+        verify(documentRepository, org.mockito.Mockito.times(1)).save(any(Document.class));
     }
 
     @Test
