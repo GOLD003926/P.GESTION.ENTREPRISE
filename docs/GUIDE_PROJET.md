@@ -61,7 +61,7 @@ Prérequis machine : JDK 21, PostgreSQL 16 avec la base `sirh_db`, Node 22, `jq`
 | `organisation` | À faire | À faire | `docs/modules/02-organisation.md` |
 | `demande` | À faire | À faire | `docs/modules/03-demande.md` |
 | `recrutement` | À faire | À faire | `docs/modules/04-recrutement.md` |
-| `employe` | À faire | À faire | `docs/modules/05-employe.md` |
+| `employe` | Terminé | À faire | `docs/modules/05-employe.md` |
 | `contrat` | À faire | À faire | `docs/modules/06-contrat.md` |
 | `onboarding` | À faire | À faire | `docs/modules/07-onboarding.md` |
 | `embauche` | À faire | À faire | `docs/modules/08-embauche.md` |
