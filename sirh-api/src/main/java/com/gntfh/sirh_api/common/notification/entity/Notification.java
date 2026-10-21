@@ -70,7 +70,7 @@ public class Notification extends AuditableEntity {
         this.message = message;
         this.entiteType = entiteType;
         this.entiteId = entiteId;
-        this.lue = lue == null || !lue;
+        this.lue = lue != null && lue;
         this.dateLecture = dateLecture;
     }
 }

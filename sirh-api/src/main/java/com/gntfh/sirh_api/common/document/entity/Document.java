@@ -69,7 +69,7 @@ public class Document extends AuditableEntity {
         this.numeroVersion = numeroVersion == null ? 1 : numeroVersion;
         this.entiteType = entiteType;
         this.entiteId = entiteId;
-        this.archive = archive == null || !archive;
+        this.archive = archive != null && archive;
     }
 
     @PrePersist

@@ -1,5 +1,6 @@
 package com.gntfh.sirh_api.common.document.service;
 
+import com.gntfh.sirh_api.common.exception.BusinessRuleException;
 import com.gntfh.sirh_api.common.audit.enums.TypeEntite;
 import com.gntfh.sirh_api.common.document.dto.ContenuDocument;
 import com.gntfh.sirh_api.common.document.dto.DocumentResponse;
@@ -81,7 +82,7 @@ public class DocumentService {
     @Transactional
     public Document enregistrer(byte[] contenu, String nomFichier, String typeMime, TypeDocument type, TypeEntite entiteType, Long entiteId) throws IOException {
         if (contenu == null || contenu.length == 0) {
-            throw new IllegalArgumentException("Le contenu du fichier ne peut pas être vide");
+            throw new BusinessRuleException("Le contenu du fichier ne peut pas être vide");
         }
 
         String hashSha256 = calculerHashSha256(contenu);
@@ -119,7 +120,7 @@ public class DocumentService {
         return documentRepository.save(document);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public DocumentResponse televerser(MultipartFile fichier, TypeDocument type, TypeEntite entiteType, Long entiteId, CurrentUser currentUser) throws IOException {
         Document document = enregistrer(fichier, type, entiteType, entiteId);
         return toResponse(document);
@@ -176,12 +177,12 @@ public class DocumentService {
 
     private void verifierFichier(MultipartFile fichier) {
         if (fichier.isEmpty()) {
-            throw new IllegalArgumentException("Le fichier ne peut pas être vide");
+            throw new BusinessRuleException("Le fichier ne peut pas être vide");
         }
 
         String typeMime = fichier.getContentType();
         if (typeMime == null || !MIME_TYPES_AUTORISES.contains(typeMime)) {
-            throw new IllegalArgumentException("Type de fichier non autorisé : " + typeMime);
+            throw new BusinessRuleException("Type de fichier non autorisé : " + typeMime);
         }
     }
 
