@@ -12,19 +12,26 @@ Générer le module `recrutement` : offres, candidats, candidatures, entretiens 
 
 ## Fichiers à produire (niveau de génération)
 
-| Fichiers | Niveau |
-|---|---|
-| `V5__recrutement.sql` | Complet : six tables, index uniques **partiels** (entretien actif par niveau, évaluation active par évaluateur), CHECK, clés étrangères nommées |
-| Énumérations (6) | **Complet**, avec `transitionsAutorisees` / `peutPasserA` / `estTerminal` pour `StatutOffre`, `StatutCandidature`, `StatutEntretien` et `TypeEntretien.pourNiveau` |
-| Entités (6) | Complet |
-| Repositories (6) | Complet, avec les méthodes nécessaires (candidature par candidat et offre, entretiens par candidature et niveau, évaluations actives par entretien, nombre de candidatures par offre, rang maximal de liste d'attente par offre, somme des postes des offres actives d'une demande) |
-| DTO : tous ceux de la section 4, y compris `IntervenantRequest`, `IntervenantResponse`, `CritereNote`, `AnnulationEntretienRequest`, les `UpdateRequest` | Complet |
-| Mappers (5) | Complet (le mapper d'évaluation convertit `criteres` ↔ JSON avec le bean JSON de Spring Boot, Jackson 3) |
-| `OffreEmploiService`, `CandidatService`, `CandidatureService`, `EntretienService`, `EvaluationCandidatService`, `SelectionWorkflowService` | **Squelettes** conformes à la section 5 (signatures exactes, y compris toutes les méthodes d'**API interne**, Javadoc avec codes de règle) |
-| Contrôleurs (5) | Complets : routes et rôles de la section 6, dépôt de CV en `multipart`, pagination, Swagger |
-| Tests : `SelectionWorkflowServiceTest` (existant), `CandidatureServiceTest`, `EvaluationCandidatServiceTest` | Squelettes `@Disabled` nommés d'après les scénarios de la section 9 |
+| Fichiers                                                                                                                                                 | Niveau                                                                                                                                                                                                                                                                              |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `V5__recrutement.sql`                                                                                                                                    | Complet : six tables, index uniques **partiels** (entretien actif par niveau, évaluation active par évaluateur), CHECK, clés étrangères nommées                                                                                                                                     |
+| Énumérations (6)                                                                                                                                         | **Complet**, avec `transitionsAutorisees` / `peutPasserA` / `estTerminal` pour `StatutOffre`, `StatutCandidature`, `StatutEntretien` et `TypeEntretien.pourNiveau`                                                                                                                  |
+| Entités (6)                                                                                                                                              | Complet                                                                                                                                                                                                                                                                             |
+| Repositories (6)                                                                                                                                         | Complet, avec les méthodes nécessaires (candidature par candidat et offre, entretiens par candidature et niveau, évaluations actives par entretien, nombre de candidatures par offre, rang maximal de liste d'attente par offre, somme des postes des offres actives d'une demande) |
+| DTO : tous ceux de la section 4, y compris `IntervenantRequest`, `IntervenantResponse`, `CritereNote`, `AnnulationEntretienRequest`, les `UpdateRequest` | Complet                                                                                                                                                                                                                                                                             |
+| Mappers (5)                                                                                                                                              | Complet (le mapper d'évaluation convertit `criteres` ↔ JSON avec le bean JSON de Spring Boot, Jackson 3)                                                                                                                                                                            |
+| `OffreEmploiService`, `CandidatService`, `CandidatureService`, `EntretienService`, `EvaluationCandidatService`, `SelectionWorkflowService`               | **Squelettes** conformes à la section 5 (signatures exactes, y compris toutes les méthodes d'**API interne**, Javadoc avec codes de règle)                                                                                                                                          |
+| Contrôleurs (5)                                                                                                                                          | Complets : routes et rôles de la section 6, dépôt de CV en `multipart`, pagination, Swagger                                                                                                                                                                                         |
+| Tests : `SelectionWorkflowServiceTest` (existant), `CandidatureServiceTest`, `EvaluationCandidatServiceTest`                                             | Squelettes `@Disabled` nommés d'après les scénarios de la section 9                                                                                                                                                                                                                 |
 
 ## Points d'attention
+
+- Requêtes de repository : @Query (JPQL) avec @Param pour tout agrégat (max, sum, count
+  conditionnel) ; jamais de findMax…/findSum… dérivés. Pour chaque méthode de repository
+  non triviale (rang maximal de liste d'attente par offre, somme des postes des offres
+  actives, entretien actif par niveau, évaluations actives), écrire un test
+  @SpringBootTest @Transactional sur la vraie base (modèle :
+  common/document/repository/DocumentRepositoryTest), exécuté et vert.
 
 - Toutes les énumérations portent leurs transitions exactement comme dans les tableaux de la spécification.
 - L'**avis agrégé d'un niveau** (REC-06) est une règle de service : la documenter en Javadoc de `avisDuNiveau`.

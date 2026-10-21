@@ -72,6 +72,11 @@ Interface Spring Data ; `JpaSpecificationExecutor` pour les recherches à filtre
 
 `@Component`, conversion pure (`toResponse`, `toEntity`, `updateEntity`). Pas de requête, pas de règle.
 
+### Repositories : requêtes
+
+- Spring Data ne dérive que `findBy`, `existsBy`, `countBy` et `deleteBy` à partir d'un nom de méthode. `findMax…`, `findMin…`, `findSum…`, `findAvg…` sont interdits : utiliser `@Query` (JPQL) avec `@Param`.
+- Chaque méthode de repository non triviale (`@Query`, agrégat, filtre combiné) est couverte par un test `@SpringBootTest @Transactional` sur la vraie base, exécuté et vert. Un repository simulé par Mockito ne prouve rien sur la requête.
+
 ### Services
 
 - `@Service @RequiredArgsConstructor` ; injection par constructeur.
@@ -81,6 +86,9 @@ Interface Spring Data ; `JpaSpecificationExecutor` pour les recherches à filtre
 - Chaque changement de statut : `peutPasserA`, puis `HistoriqueStatutService.enregistrer(...)`.
 - Javadoc de chaque méthode de règle : code de la règle (`RG-xx` ou `<MODULE>-xx`).
 - Tri de liste : liste blanche de champs (voir `UtilisateurService.verifierTri`).
+- Une classe de service annotée `@Transactional(readOnly = true)` impose `@Transactional` (sans `readOnly`) sur CHAQUE méthode qui écrit en base. Un test unitaire Mockito ne détecte jamais cette erreur : la preuve se fait par un appel HTTP réel qui écrit puis relit.
+- Le rapport indique, pour chaque service, la liste des méthodes d'écriture et leur annotation `@Transactional`.
+-
 
 ### Contrôleurs
 
@@ -133,7 +141,12 @@ Exception : si le prompt de la tâche demande explicitement l'implémentation co
 5. Aucun `TODO` sans code de règle ; aucun attribut hors spécification.
 6. Un commit par module, message : `feat(<module>): <résumé>`.
 7. Aucune vérification ne peut être omise « par manque de temps ». Si une vérification
-   n'est pas exécutée, le commit est interdit et le rapport l'indique en première ligne.
+   n'est pas exécutée, le commit est interdit et le rapport l'indique en première ligne. 8.`./mvnw test` doit afficher BUILD SUCCESS avant tout commit, sortie brute à l'appui.
+   Un test écrit mais non exécuté est interdit. Un test en échec ne se modifie pas pour
+   passer : on corrige le code, ou on le signale.
+8. Valeur par défaut d'un booléen dans un constructeur @Builder : « x != null && x »
+   pour un défaut faux (archive, lue, verrouillee, consentementDonnees), « x == null || x »
+   pour un défaut vrai (actif, active). Chaque entité à booléen reçoit un test de valeur par défaut.
 
 ## 8. Quand la spécification est ambiguë ou contradictoire
 
