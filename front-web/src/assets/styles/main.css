@@ -1,5 +1,6 @@
 @import './variables.css';
 @import './reset.css';
+@import './dashboard-widgets.css';
 
 #app {
   min-height: 100vh;

@@ -31,7 +31,7 @@ export function installGuards(router) {
     // 4. Pages réservées à certains rôles (utilisé par les modules suivants).
     const allowedRoles = to.meta.roles
     if (allowedRoles && !allowedRoles.includes(auth.role)) {
-      return { name: ROUTE_NAMES.DASHBOARD }
+      return { name: ROUTE_NAMES.FORBIDDEN }
     }
 
     return true
