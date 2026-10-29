@@ -1,4 +1,11 @@
 import { ROUTE_NAMES } from '@/constants/routeNames'
+import organisationRoutes from './organisation.routes.js'
+import demandeRoutes from './demande.routes.js'
+import recrutementRoutes from './recrutement.routes.js'
+import employeRoutes from './employe.routes.js'
+import contratRoutes from './contrat.routes.js'
+import onboardingRoutes from './onboarding.routes.js'
+import embaucheRoutes from './embauche.routes.js'
 
 export default [
   {
@@ -23,6 +30,13 @@ export default [
         component: () => import('@/views/errors/NotFoundView.vue'),
         meta: { title: 'Page introuvable' },
       },
+      ...organisationRoutes,
+      ...demandeRoutes,
+      ...recrutementRoutes,
+      ...employeRoutes,
+      ...contratRoutes,
+      ...onboardingRoutes,
+      ...embaucheRoutes,
       {
         path: ':pathMatch(.*)*',
         component: () => import('@/views/errors/NotFoundView.vue'),

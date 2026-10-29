@@ -1,6 +1,8 @@
 @import './variables.css';
 @import './reset.css';
 @import './dashboard-widgets.css';
+@import './organisation-forms.css';
+@import './organisation-tables.css';
 
 #app {
   min-height: 100vh;
