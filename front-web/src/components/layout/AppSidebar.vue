@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { NAVIGATION_ITEMS } from '@/constants/navigation'
+import { ROLES } from '@/constants/roles'
 import { ROUTE_NAMES } from '@/constants/routeNames'
 import { useAuthStore } from '@/stores/auth'
 import AppNavIcon from './AppNavIcon.vue'
@@ -14,10 +15,26 @@ const emit = defineEmits(['navigate'])
 const auth = useAuthStore()
 const route = useRoute()
 
-const items = computed(() => NAVIGATION_ITEMS.filter((item) => item.roles.includes(auth.role)))
+const items = computed(() =>
+  NAVIGATION_ITEMS.filter((item) => item.roles.includes(auth.role)).map((item) => ({
+    ...item,
+    children: item.children?.filter((child) => child.roles?.includes(auth.role) ?? true),
+  })),
+)
 
 function isActive(item) {
-  return item.routeName === route.name
+  return (
+    item.routeName === route.name ||
+    item.id === route.meta.navigationGroup ||
+    (item.id === 'validations' &&
+      route.name === ROUTE_NAMES.DEMANDE_DETAIL &&
+      [ROLES.RH, ROLES.FINANCE, ROLES.DG].includes(auth.role)) ||
+    item.children?.some((child) => child.routeName === route.name)
+  )
+}
+
+function isChildActive(child) {
+  return child.routeName === route.name
 }
 </script>
 
@@ -80,8 +97,21 @@ function isActive(item) {
             <AppNavIcon :name="item.icon" :size="18" />
             <span>{{ item.label }}</span>
           </RouterLink>
+          <div v-if="item.enabled && item.children?.length" class="sidebar__subnav">
+            <RouterLink
+              v-for="child in item.children"
+              :key="child.routeName"
+              :to="{ name: child.routeName }"
+              class="sidebar__sublink"
+              :class="{ 'sidebar__sublink--active': isChildActive(child) }"
+              :aria-current="isChildActive(child) ? 'page' : undefined"
+              @click="emit('navigate')"
+            >
+              {{ child.label }}
+            </RouterLink>
+          </div>
           <div
-            v-else
+            v-else-if="!item.enabled"
             class="sidebar__link sidebar__link--disabled"
             :aria-label="`${item.label}, bientôt disponible`"
             :title="`${item.label} : bientôt disponible`"
@@ -235,6 +265,35 @@ function isActive(item) {
 }
 
 .sidebar__link--active {
+  font-weight: var(--font-weight-semibold);
+}
+
+.sidebar__subnav {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-2) calc(var(--space-4) + 18px);
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--color-border);
+}
+
+.sidebar__sublink {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+
+.sidebar__sublink:hover,
+.sidebar__sublink--active {
+  background: var(--color-info-soft);
+  color: var(--color-primary);
+}
+
+.sidebar__sublink--active {
   font-weight: var(--font-weight-semibold);
 }
 
