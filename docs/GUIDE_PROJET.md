@@ -36,7 +36,7 @@ Documents associés :
 
 | Élément | Version / choix |
 |---|---|
-| Java | 21 |
+| Java | 21 (LTS) |
 | Spring Boot | 4.1.1 (Spring Framework 7, Hibernate 7, Spring Security 7) |
 | Base de données | PostgreSQL 16 |
 | Migrations | Flyway (`spring-boot-starter-flyway` + `flyway-database-postgresql`) |

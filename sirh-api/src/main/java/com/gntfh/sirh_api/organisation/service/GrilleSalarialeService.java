@@ -1,6 +1,12 @@
 package com.gntfh.sirh_api.organisation.service;
 
 import com.gntfh.sirh_api.common.dto.PageResponse;
+import com.gntfh.sirh_api.common.audit.enums.ActionAudit;
+import com.gntfh.sirh_api.common.audit.enums.TypeEntite;
+import com.gntfh.sirh_api.common.audit.service.AuditService;
+import com.gntfh.sirh_api.common.exception.BusinessRuleException;
+import com.gntfh.sirh_api.common.exception.DuplicateResourceException;
+import com.gntfh.sirh_api.common.exception.ResourceNotFoundException;
 import com.gntfh.sirh_api.organisation.dto.GrilleSalarialeRequest;
 import com.gntfh.sirh_api.organisation.dto.GrilleSalarialeResponse;
 import com.gntfh.sirh_api.organisation.dto.GrilleSalarialeUpdateRequest;
@@ -18,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.criteria.Predicate;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 /**
  * Service pour la gestion des grilles salariales.
@@ -29,6 +37,10 @@ public class GrilleSalarialeService {
 
     private final GrilleSalarialeRepository repository;
     private final GrilleSalarialeMapper mapper;
+    private final AuditService auditService;
+
+    private static final Set<String> TRIS_AUTORISES =
+            Set.of("id", "code", "intitule", "niveau", "salaireMin", "salaireMax", "actif");
 
     /**
      * Recherche des grilles salariales avec filtres.
@@ -41,7 +53,18 @@ public class GrilleSalarialeService {
      */
     @Transactional(readOnly = true)
     public PageResponse<GrilleSalarialeResponse> rechercher(String q, Boolean actif, Pageable pageable) {
-        throw new UnsupportedOperationException("TODO ORG-08");
+        verifierTri(pageable);
+        Specification<GrilleSalariale> spec = (root, query, cb) -> cb.conjunction();
+        if (q != null && !q.isBlank()) {
+            String motif = "%" + q.trim().toLowerCase(Locale.ROOT) + "%";
+            spec = spec.and((root, query, cb) -> cb.or(
+                    cb.like(cb.lower(root.get("code")), motif),
+                    cb.like(cb.lower(root.get("intitule")), motif)));
+        }
+        if (actif != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("actif"), actif));
+        }
+        return PageResponse.from(repository.findAll(spec, pageable), mapper::toResponse);
     }
 
     /**
@@ -52,7 +75,7 @@ public class GrilleSalarialeService {
      */
     @Transactional(readOnly = true)
     public GrilleSalarialeResponse obtenir(Long id) {
-        throw new UnsupportedOperationException("TODO ORG-08");
+        return mapper.toResponse(trouver(id));
     }
 
     /**
@@ -66,7 +89,17 @@ public class GrilleSalarialeService {
      */
     @Transactional
     public GrilleSalarialeResponse creer(GrilleSalarialeRequest request) {
-        throw new UnsupportedOperationException("TODO ORG-01 ORG-02 ORG-08");
+        String code = request.code().trim().toUpperCase(Locale.ROOT);
+        if (repository.existsByCodeIgnoreCase(code)) {
+            throw DuplicateResourceException.of("Une grille salariale", "le code", code);
+        }
+        verifierBornes(request.salaireMin(), request.salaireMax());
+        GrilleSalariale grille = mapper.toEntity(request);
+        grille.setCode(code);
+        GrilleSalarialeResponse response = mapper.toResponse(repository.save(grille));
+        auditService.journaliser(ActionAudit.CREATION, TypeEntite.GRILLE_SALARIALE,
+                response.id(), null, response, "system");
+        return response;
     }
 
     /**
@@ -81,7 +114,14 @@ public class GrilleSalarialeService {
      */
     @Transactional
     public GrilleSalarialeResponse modifier(Long id, GrilleSalarialeUpdateRequest request) {
-        throw new UnsupportedOperationException("TODO ORG-02 ORG-05 ORG-08");
+        GrilleSalariale grille = trouver(id);
+        verifierBornes(request.salaireMin(), request.salaireMax());
+        GrilleSalarialeResponse avant = mapper.toResponse(grille);
+        mapper.updateEntity(request, grille);
+        GrilleSalarialeResponse apres = mapper.toResponse(grille);
+        auditService.journaliser(ActionAudit.MODIFICATION, TypeEntite.GRILLE_SALARIALE,
+                id, avant, apres, "system");
+        return apres;
     }
 
     /**
@@ -94,7 +134,9 @@ public class GrilleSalarialeService {
      */
     @Transactional
     public GrilleSalarialeResponse activer(Long id) {
-        throw new UnsupportedOperationException("TODO ORG-04 ORG-08");
+        GrilleSalariale grille = trouver(id);
+        grille.setActif(true);
+        return mapper.toResponse(grille);
     }
 
     /**
@@ -107,6 +149,33 @@ public class GrilleSalarialeService {
      */
     @Transactional
     public GrilleSalarialeResponse desactiver(Long id) {
-        throw new UnsupportedOperationException("TODO ORG-04 ORG-08");
+        GrilleSalariale grille = trouver(id);
+        if (repository.countPostesActifsByGrilleSalarialeId(id) > 0) {
+            throw new BusinessRuleException("La grille salariale ne peut pas être désactivée car elle est utilisée par des postes actifs.");
+        }
+        GrilleSalarialeResponse avant = mapper.toResponse(grille);
+        grille.setActif(false);
+        GrilleSalarialeResponse apres = mapper.toResponse(grille);
+        auditService.journaliser(ActionAudit.SUPPRESSION_LOGIQUE, TypeEntite.GRILLE_SALARIALE,
+                id, avant, apres, "system");
+        return apres;
+    }
+
+    private GrilleSalariale trouver(Long id) {
+        return repository.findById(id).orElseThrow(() -> ResourceNotFoundException.of("Grille salariale", id));
+    }
+
+    private void verifierBornes(java.math.BigDecimal min, java.math.BigDecimal max) {
+        if (max.compareTo(min) < 0) {
+            throw new BusinessRuleException("Le salaire maximum doit être supérieur ou égal au salaire minimum.");
+        }
+    }
+
+    private void verifierTri(Pageable pageable) {
+        pageable.getSort().forEach(order -> {
+            if (!TRIS_AUTORISES.contains(order.getProperty())) {
+                throw new BusinessRuleException("Tri non autorisé sur le champ « %s ».".formatted(order.getProperty()));
+            }
+        });
     }
 }

@@ -5,6 +5,7 @@ import com.gntfh.sirh_api.common.security.CurrentUser;
 import com.gntfh.sirh_api.recrutement.dto.CandidatureRequest;
 import com.gntfh.sirh_api.recrutement.dto.CandidatureResponse;
 import com.gntfh.sirh_api.recrutement.enums.StatutCandidature;
+import com.gntfh.sirh_api.recrutement.entity.Candidature;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -12,6 +13,8 @@ import org.springframework.web.multipart.MultipartFile;
  * Service pour la gestion des candidatures.
  */
 public interface CandidatureService {
+
+    Candidature trouver(Long id);
 
     /**
      * Crée une nouvelle candidature.

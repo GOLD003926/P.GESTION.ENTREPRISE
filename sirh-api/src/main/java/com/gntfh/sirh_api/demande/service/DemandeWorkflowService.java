@@ -1,6 +1,8 @@
 package com.gntfh.sirh_api.demande.service;
 
 import com.gntfh.sirh_api.common.exception.InvalidStateTransitionException;
+import com.gntfh.sirh_api.common.audit.enums.TypeEntite;
+import com.gntfh.sirh_api.common.audit.service.HistoriqueStatutService;
 import com.gntfh.sirh_api.demande.entity.DemandeRecrutement;
 import com.gntfh.sirh_api.demande.entity.Validation;
 import com.gntfh.sirh_api.demande.enums.DecisionValidation;
@@ -23,6 +25,7 @@ public class DemandeWorkflowService {
 
     private final DemandeRecrutementRepository demandeRecrutementRepository;
     private final ValidationRepository validationRepository;
+    private final HistoriqueStatutService historiqueStatutService;
 
     /**
      * Transitionne une demande vers un nouveau statut si la transition est autorisée.
@@ -36,7 +39,19 @@ public class DemandeWorkflowService {
      */
     @Transactional
     public void transitionner(DemandeRecrutement demande, StatutDemande cible, String auteur, String commentaire) {
-        throw new UnsupportedOperationException("TODO : vérifier peutPasserA et appliquer la transition");
+        StatutDemande ancien = demande.getStatut();
+        if (!ancien.peutPasserA(cible)) {
+            throw new InvalidStateTransitionException("DemandeRecrutement", ancien, cible);
+        }
+        demande.setStatut(cible);
+        historiqueStatutService.enregistrer(
+                TypeEntite.DEMANDE_RECRUTEMENT,
+                demande.getId(),
+                ancien.name(),
+                cible.name(),
+                auteur,
+                commentaire
+        );
     }
 
     /**
@@ -45,7 +60,17 @@ public class DemandeWorkflowService {
      */
     @Transactional
     public void creerValidationsDuCycle(DemandeRecrutement demande) {
-        throw new UnsupportedOperationException("TODO : incrémenter cycleCourant et créer les validations RH, Finance, DG");
+        int cycle = demande.getCycleCourant() + 1;
+        demande.setCycleCourant(cycle);
+        for (RoleValidateur role : RoleValidateur.values()) {
+            validationRepository.save(Validation.builder()
+                    .demande(demande)
+                    .cycle(cycle)
+                    .ordre(role.ordre())
+                    .roleValidateur(role)
+                    .decision(DecisionValidation.EN_ATTENTE)
+                    .build());
+        }
     }
 
     /**
@@ -59,7 +84,12 @@ public class DemandeWorkflowService {
     @Transactional
     public void marquerEnRecrutement(Long demandeId, String auteur) {
         // API interne
-        throw new UnsupportedOperationException("TODO DEM-13 : VALIDEE → EN_RECRUTEMENT");
+        DemandeRecrutement demande = demandeRecrutementRepository.findById(demandeId)
+                .orElseThrow(() -> com.gntfh.sirh_api.common.exception.ResourceNotFoundException.of("DemandeRecrutement", demandeId));
+        if (demande.getStatut() == StatutDemande.EN_RECRUTEMENT) {
+            return;
+        }
+        transitionner(demande, StatutDemande.EN_RECRUTEMENT, auteur, null);
     }
 
     /**
@@ -73,7 +103,16 @@ public class DemandeWorkflowService {
     @Transactional
     public void enregistrerEmbauche(Long demandeId, String auteur) {
         // API interne
-        throw new UnsupportedOperationException("TODO RG-24 : incrémenter effectifPourvu et passer à POURVUE si complet");
+        DemandeRecrutement demande = demandeRecrutementRepository.findById(demandeId)
+                .orElseThrow(() -> com.gntfh.sirh_api.common.exception.ResourceNotFoundException.of("DemandeRecrutement", demandeId));
+        int pourvu = demande.getEffectifPourvu() + 1;
+        if (pourvu > demande.getEffectifDemande()) {
+            throw new com.gntfh.sirh_api.common.exception.BusinessRuleException("L'effectif pourvu dépasse l'effectif demandé.");
+        }
+        demande.setEffectifPourvu(pourvu);
+        if (pourvu == demande.getEffectifDemande()) {
+            transitionner(demande, StatutDemande.POURVUE, auteur, null);
+        }
     }
 
     /**
@@ -86,6 +125,8 @@ public class DemandeWorkflowService {
     @Transactional(readOnly = true)
     public int effectifRestantAPourvoir(Long demandeId) {
         // API interne
-        throw new UnsupportedOperationException("TODO : retourner effectifDemande - effectifPourvu");
+        DemandeRecrutement demande = demandeRecrutementRepository.findById(demandeId)
+                .orElseThrow(() -> com.gntfh.sirh_api.common.exception.ResourceNotFoundException.of("DemandeRecrutement", demandeId));
+        return demande.getEffectifDemande() - demande.getEffectifPourvu();
     }
 }

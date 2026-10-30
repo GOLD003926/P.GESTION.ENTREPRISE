@@ -2,17 +2,29 @@ package com.gntfh.sirh_api.demande.service;
 
 import com.gntfh.sirh_api.common.dto.PageResponse;
 import com.gntfh.sirh_api.common.security.CurrentUser;
+import com.gntfh.sirh_api.common.exception.BusinessRuleException;
+import com.gntfh.sirh_api.common.exception.ResourceNotFoundException;
+import com.gntfh.sirh_api.common.numerotation.NumeroService;
+import com.gntfh.sirh_api.common.numerotation.SequenceNumero;
+import com.gntfh.sirh_api.common.audit.enums.TypeEntite;
+import com.gntfh.sirh_api.common.audit.service.HistoriqueStatutService;
+import com.gntfh.sirh_api.auth.entity.Utilisateur;
+import com.gntfh.sirh_api.auth.repository.UtilisateurRepository;
 import com.gntfh.sirh_api.demande.dto.AnnulationRequest;
 import com.gntfh.sirh_api.demande.dto.DemandeRecrutementRequest;
 import com.gntfh.sirh_api.demande.dto.DemandeRecrutementResponse;
 import com.gntfh.sirh_api.demande.entity.DemandeRecrutement;
 import com.gntfh.sirh_api.demande.enums.StatutDemande;
 import com.gntfh.sirh_api.demande.repository.DemandeRecrutementRepository;
+import com.gntfh.sirh_api.demande.mapper.DemandeRecrutementMapper;
+import com.gntfh.sirh_api.organisation.entity.Poste;
+import com.gntfh.sirh_api.organisation.repository.PosteRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +42,11 @@ public class DemandeRecrutementService {
     private final BudgetService budgetService;
     private final DemandeWorkflowService demandeWorkflowService;
     private final ObjectProvider<EmployeLookup> employeLookupProvider;
+    private final DemandeRecrutementMapper mapper;
+    private final PosteRepository posteRepository;
+    private final UtilisateurRepository utilisateurRepository;
+    private final NumeroService numeroService;
+    private final HistoriqueStatutService historiqueStatutService;
 
     /**
      * Crée une nouvelle demande de recrutement.
@@ -42,7 +59,20 @@ public class DemandeRecrutementService {
      */
     @Transactional
     public DemandeRecrutementResponse creer(DemandeRecrutementRequest request, CurrentUser currentUser) {
-        throw new UnsupportedOperationException("TODO DEM-01, DEM-02, DEM-03, RG-03, RG-04, RG-05, RG-06, RG-07");
+        Poste poste = posteRepository.findById(request.posteId())
+                .orElseThrow(() -> ResourceNotFoundException.of("Poste", request.posteId()));
+        if (!Boolean.TRUE.equals(poste.getActif())) {
+            throw new BusinessRuleException("Le poste sélectionné est inactif.");
+        }
+        Utilisateur demandeur = utilisateurRepository.findById(currentUser.id())
+                .orElseThrow(() -> ResourceNotFoundException.of("Utilisateur", currentUser.id()));
+        DemandeRecrutement demande = mapper.toEntity(request);
+        demande.setReference(numeroService.prochain(SequenceNumero.DEMANDE));
+        demande.setPoste(poste);
+        demande.setDepartement(poste.getDepartement());
+        demande.setDemandeur(demandeur);
+        demande.setBudgetEstime(budgetService.calculer(poste, request.effectifDemande()));
+        return mapper.toResponse(demandeRecrutementRepository.save(demande));
     }
 
     /**
@@ -57,7 +87,23 @@ public class DemandeRecrutementService {
      */
     @Transactional
     public DemandeRecrutementResponse modifier(Long id, DemandeRecrutementRequest request, CurrentUser currentUser) {
-        throw new UnsupportedOperationException("TODO RG-11 : modification uniquement en BROUILLON ou RETOURNEE");
+        DemandeRecrutement demande = charger(id);
+        if (demande.getDemandeur() == null || !demande.getDemandeur().getId().equals(currentUser.id())) {
+            throw new BusinessRuleException("Seul le demandeur peut modifier cette demande.");
+        }
+        if (demande.getStatut() != StatutDemande.BROUILLON && demande.getStatut() != StatutDemande.RETOURNEE) {
+            throw new BusinessRuleException("La demande n'est modifiable qu'à l'état brouillon ou retournée.");
+        }
+        Poste poste = posteRepository.findById(request.posteId())
+                .orElseThrow(() -> ResourceNotFoundException.of("Poste", request.posteId()));
+        if (!Boolean.TRUE.equals(poste.getActif())) {
+            throw new BusinessRuleException("Le poste sélectionné est inactif.");
+        }
+        mapper.updateEntity(request, demande);
+        demande.setPoste(poste);
+        demande.setDepartement(poste.getDepartement());
+        demande.setBudgetEstime(budgetService.calculer(poste, request.effectifDemande()));
+        return mapper.toResponse(demande);
     }
 
     /**
@@ -70,7 +116,9 @@ public class DemandeRecrutementService {
      */
     @Transactional(readOnly = true)
     public DemandeRecrutementResponse obtenir(Long id, CurrentUser currentUser) {
-        throw new UnsupportedOperationException("TODO DEM-07 : visibilité selon le rôle et le périmètre");
+        DemandeRecrutement demande = charger(id);
+        verifierVisibilite(demande, currentUser);
+        return mapper.toResponse(demande);
     }
 
     /**
@@ -88,7 +136,20 @@ public class DemandeRecrutementService {
      */
     @Transactional(readOnly = true)
     public PageResponse<DemandeRecrutementResponse> rechercher(String q, StatutDemande statut, Long posteId, Long departementId, Pageable pageable, CurrentUser currentUser) {
-        throw new UnsupportedOperationException("TODO DEM-07 : recherche avec filtres et visibilité");
+        Specification<DemandeRecrutement> specification = (root, query, cb) -> {
+            var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
+            if (q != null && !q.isBlank()) {
+                predicates.add(cb.like(cb.lower(root.get("reference")), "%" + q.toLowerCase() + "%"));
+            }
+            if (statut != null) predicates.add(cb.equal(root.get("statut"), statut));
+            if (posteId != null) predicates.add(cb.equal(root.get("poste").get("id"), posteId));
+            if (departementId != null) predicates.add(cb.equal(root.get("departement").get("id"), departementId));
+            if (currentUser.role() == com.gntfh.sirh_api.auth.enums.Role.MANAGER) {
+                predicates.add(cb.equal(root.get("demandeur").get("id"), currentUser.id()));
+            }
+            return cb.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        };
+        return PageResponse.from(demandeRecrutementRepository.findAll(specification, pageable), mapper::toResponse);
     }
 
     /**
@@ -102,7 +163,19 @@ public class DemandeRecrutementService {
      */
     @Transactional
     public DemandeRecrutementResponse soumettre(Long id, CurrentUser currentUser) {
-        throw new UnsupportedOperationException("TODO RG-06, RG-07, RG-08 : soumission à validation");
+        DemandeRecrutement demande = charger(id);
+        if (!demande.getDemandeur().getId().equals(currentUser.id())) {
+            throw new BusinessRuleException("Seul le demandeur peut soumettre cette demande.");
+        }
+        if (demande.getDateSouhaitee().isBefore(java.time.LocalDate.now())) {
+            throw new BusinessRuleException("La date souhaitée doit être aujourd'hui ou dans le futur.");
+        }
+        if (demande.getStatut() != StatutDemande.BROUILLON && demande.getStatut() != StatutDemande.RETOURNEE) {
+            throw new BusinessRuleException("La demande ne peut pas être soumise dans son état actuel.");
+        }
+        demandeWorkflowService.creerValidationsDuCycle(demande);
+        demandeWorkflowService.transitionner(demande, StatutDemande.EN_VALIDATION_RH, currentUser.email(), null);
+        return mapper.toResponse(demande);
     }
 
     /**
@@ -117,7 +190,20 @@ public class DemandeRecrutementService {
      */
     @Transactional
     public DemandeRecrutementResponse annuler(Long id, AnnulationRequest request, CurrentUser currentUser) {
-        throw new UnsupportedOperationException("TODO DEM-08 : annulation selon statut et rôle");
+        DemandeRecrutement demande = charger(id);
+        if (request.motif() == null || request.motif().isBlank()) {
+            throw new BusinessRuleException("Le motif d'annulation est obligatoire.");
+        }
+        boolean autorise = currentUser.role() == com.gntfh.sirh_api.auth.enums.Role.RH
+                || currentUser.role() == com.gntfh.sirh_api.auth.enums.Role.ADMIN
+                || demande.getDemandeur().getId().equals(currentUser.id());
+        if (!autorise || (demande.getStatut() != StatutDemande.BROUILLON
+                && demande.getStatut() != StatutDemande.RETOURNEE
+                && demande.getStatut() != StatutDemande.EN_RECRUTEMENT)) {
+            throw new BusinessRuleException("La demande ne peut pas être annulée dans son état actuel.");
+        }
+        demandeWorkflowService.transitionner(demande, StatutDemande.ANNULEE, currentUser.email(), request.motif());
+        return mapper.toResponse(demande);
     }
 
     /**
@@ -130,6 +216,21 @@ public class DemandeRecrutementService {
      */
     @Transactional(readOnly = true)
     public List<Object> historique(Long id, CurrentUser currentUser) {
-        throw new UnsupportedOperationException("TODO : historique des statuts");
+        DemandeRecrutement demande = charger(id);
+        verifierVisibilite(demande, currentUser);
+        return historiqueStatutService.lister(TypeEntite.DEMANDE_RECRUTEMENT, id)
+                .stream().map(element -> (Object) element).toList();
+    }
+
+    private DemandeRecrutement charger(Long id) {
+        return demandeRecrutementRepository.findById(id)
+                .orElseThrow(() -> ResourceNotFoundException.of("DemandeRecrutement", id));
+    }
+
+    private void verifierVisibilite(DemandeRecrutement demande, CurrentUser currentUser) {
+        if (currentUser.role() == com.gntfh.sirh_api.auth.enums.Role.MANAGER
+                && !demande.getDemandeur().getId().equals(currentUser.id())) {
+            throw ResourceNotFoundException.of("DemandeRecrutement", demande.getId());
+        }
     }
 }

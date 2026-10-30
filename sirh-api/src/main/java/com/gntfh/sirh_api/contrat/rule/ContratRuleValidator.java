@@ -25,7 +25,16 @@ public class ContratRuleValidator {
      * et une date de fin calculée par calculerFinPrevue.
      */
     public void verifierCreation(TypeContrat type, LocalDate debut, Integer dureeMois) {
-        throw new UnsupportedOperationException("TODO CON-01");
+        if (type == null || debut == null) throw new IllegalArgumentException("Type et date de début obligatoires");
+        if (type.aDateFin()) {
+            if (dureeMois == null || dureeMois <= 0) throw new IllegalArgumentException("La durée est obligatoire");
+            int max = type == TypeContrat.ESSAI
+                    ? sirhProperties.contrat().essai().dureeMaxMois()
+                    : sirhProperties.contrat().cdd().dureeMaxMois();
+            if (dureeMois > max) throw new IllegalArgumentException("La durée dépasse le maximum autorisé");
+        } else if (dureeMois != null) {
+            throw new IllegalArgumentException("Une durée est interdite pour un CDI");
+        }
     }
 
     /**
@@ -38,7 +47,19 @@ public class ContratRuleValidator {
      * entre le lendemain du début et le lendemain de la fin prévue du précédent.
      */
     public void verifierRenouvellement(Contrat precedent, int dureeMois, LocalDate debut) {
-        throw new UnsupportedOperationException("TODO CON-04");
+        if (precedent == null || precedent.getStatut() != com.gntfh.sirh_api.contrat.enums.StatutContrat.ACTIF)
+            throw new IllegalArgumentException("Le contrat précédent doit être actif");
+        if (dureeMois <= 0) throw new IllegalArgumentException("Durée invalide");
+        verifierCreation(precedent.getType(), debut, dureeMois);
+        if (!debut.isAfter(precedent.getDateDebut())
+                || precedent.getDateFinPrevue() == null
+                || debut.isAfter(precedent.getDateFinPrevue().plusDays(1)))
+            throw new IllegalArgumentException("Date de début de renouvellement invalide");
+        int cumul = dureeCumuleeMois(precedent) + dureeMois;
+        int max = precedent.getType() == TypeContrat.ESSAI
+                ? sirhProperties.contrat().essai().cumulMaxMois()
+                : sirhProperties.contrat().cdd().dureeMaxMois();
+        if (cumul > max) throw new IllegalArgumentException("La durée cumulée dépasse le maximum autorisé");
     }
 
     /**
@@ -49,7 +70,11 @@ public class ContratRuleValidator {
      * sirh.contrat.cdd.duree-max-mois.
      */
     public void verifierTransformation(Contrat precedent, TypeContrat cible, Integer dureeMois, LocalDate debut) {
-        throw new UnsupportedOperationException("TODO CON-07");
+        if (precedent == null || cible == null || precedent.getType() == TypeContrat.CDI
+                || (precedent.getType() == TypeContrat.CDD && cible != TypeContrat.CDI)
+                || cible == TypeContrat.ESSAI)
+            throw new IllegalArgumentException("Transformation de contrat interdite");
+        verifierCreation(cible, debut, dureeMois);
     }
 
     /**
@@ -60,13 +85,23 @@ public class ContratRuleValidator {
      * H3/CON-02 : concentre l'interprétation du plafond cumulé des CDD.
      */
     public int dureeCumuleeMois(Contrat contrat) {
-        throw new UnsupportedOperationException("TODO CON-04");
+        int total = 0;
+        Contrat courant = contrat;
+        while (courant != null && courant.getType() == contrat.getType()) {
+            if (courant.getDateDebut() != null && courant.getDateFinPrevue() != null) {
+                total += (int) java.time.temporal.ChronoUnit.MONTHS.between(
+                        courant.getDateDebut().withDayOfMonth(1), courant.getDateFinPrevue().plusDays(1).withDayOfMonth(1));
+            }
+            courant = courant.getContratPrecedent();
+        }
+        return total;
     }
 
     /**
      * Calcule la date de fin prévue : dateDebut + dureeMois mois - 1 jour.
      */
     public LocalDate calculerFinPrevue(LocalDate dateDebut, int dureeMois) {
-        throw new UnsupportedOperationException("TODO CON-01");
+        if (dateDebut == null || dureeMois <= 0) throw new IllegalArgumentException("Date ou durée invalide");
+        return dateDebut.plusMonths(dureeMois).minusDays(1);
     }
 }

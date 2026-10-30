@@ -2,9 +2,17 @@ package com.gntfh.sirh_api.embauche.service;
 
 import com.gntfh.sirh_api.common.audit.service.AuditService;
 import com.gntfh.sirh_api.common.audit.service.HistoriqueStatutService;
+import com.gntfh.sirh_api.common.audit.enums.ActionAudit;
+import com.gntfh.sirh_api.common.audit.enums.TypeEntite;
 import com.gntfh.sirh_api.common.document.service.DocumentService;
+import com.gntfh.sirh_api.common.document.enums.TypeDocument;
+import com.gntfh.sirh_api.common.exception.BusinessRuleException;
+import com.gntfh.sirh_api.common.exception.InvalidStateTransitionException;
+import com.gntfh.sirh_api.common.exception.ResourceNotFoundException;
 import com.gntfh.sirh_api.common.notification.service.NotificationService;
+import com.gntfh.sirh_api.common.notification.enums.TypeNotification;
 import com.gntfh.sirh_api.common.security.CurrentUser;
+import com.gntfh.sirh_api.common.config.SirhProperties;
 import com.gntfh.sirh_api.demande.service.DemandeWorkflowService;
 import com.gntfh.sirh_api.embauche.dto.PropositionEmbaucheResponse;
 import com.gntfh.sirh_api.embauche.dto.ReponsePropositionRequest;
@@ -17,6 +25,9 @@ import com.gntfh.sirh_api.employe.service.FicheSalariePdfService;
 import com.gntfh.sirh_api.contrat.service.ContratService;
 import com.gntfh.sirh_api.recrutement.service.CandidatureService;
 import com.gntfh.sirh_api.recrutement.service.OffreEmploiService;
+import com.gntfh.sirh_api.embauche.enums.ReponseCandidat;
+import com.gntfh.sirh_api.embauche.enums.StatutProposition;
+import com.gntfh.sirh_api.contrat.dto.ContratInitialCommande;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +51,7 @@ public class EmbaucheServiceImpl implements EmbaucheService {
     private final HistoriqueStatutService historiqueStatutService;
     private final AuditService auditService;
     private final NotificationService notificationService;
+    private final SirhProperties sirhProperties;
 
     private UnsupportedOperationException todo(String codeRegle) {
         return new UnsupportedOperationException("TODO " + codeRegle);
@@ -59,7 +71,18 @@ public class EmbaucheServiceImpl implements EmbaucheService {
             ReponsePropositionRequest request,
             CurrentUser currentUser
     ) {
-        throw todo("EMB-06");
+        var proposition = charger(propositionId);
+        if (!proposition.getStatut().estActive() || proposition.getStatut() == StatutProposition.BROUILLON) {
+            throw new InvalidStateTransitionException("PropositionEmbauche", proposition.getStatut(),
+                    "réponse");
+        }
+        return switch (request.reponse()) {
+            case ACCEPTER -> accepter(propositionId, currentUser.email());
+            case REFUSER -> new ReponsePropositionResultat(
+                    refuser(propositionId, request.motifRefus(), currentUser.email()), null, null, null);
+            case DEMANDER_DELAI -> new ReponsePropositionResultat(
+                    demanderDelai(propositionId, currentUser.email()), null, null, null);
+        };
     }
 
     /**
@@ -87,7 +110,40 @@ public class EmbaucheServiceImpl implements EmbaucheService {
     @Override
     @Transactional
     public ReponsePropositionResultat accepter(Long propositionId, String auteur) {
-        throw todo("EMB-07");
+        var proposition = charger(propositionId);
+        if (!proposition.getStatut().peutPasserA(StatutProposition.ACCEPTEE)) {
+            throw new InvalidStateTransitionException("PropositionEmbauche", proposition.getStatut(),
+                    StatutProposition.ACCEPTEE);
+        }
+        var auteurDate = java.time.Instant.now();
+        proposition.setDateReponse(auteurDate);
+        changerStatut(proposition, StatutProposition.ACCEPTEE, auteur, null);
+        candidatureService.marquerEmbauchee(proposition.getCandidature().getId(), auteur);
+        var employe = employeService.creerDepuisCandidature(proposition.getCandidature().getId(),
+                proposition.getDateDebutPrevue(), auteur);
+        try {
+            var fiche = ficheSalariePdfService.generer(employe, java.util.Optional.empty());
+            var document = documentService.enregistrer(fiche, "fiche-salarie-" + employe.getId() + ".pdf",
+                    "application/pdf", TypeDocument.FICHE_SALARIE, TypeEntite.EMPLOYE, employe.getId());
+            var contrat = contratService.creerContratInitial(new ContratInitialCommande(
+                    employe.getId(), proposition.getPoste().getId(), null, proposition.getTypeContratPropose(),
+                    proposition.getDateDebutPrevue(), proposition.getDureeMois(), proposition.getSalairePropose(),
+                    proposition.getDevise(), proposition.getHorairesTravail(), proposition.getLieuTravail()), auteur);
+            proposition.setEmploye(employe);
+            var demande = proposition.getCandidature().getOffre().getDemande();
+            demandeWorkflowService.enregistrerEmbauche(demande.getId(), auteur);
+            offreEmploiService.cloturerSiEffectifAtteint(demande.getId(), auteur);
+            var response = mapper.toResponse(proposition);
+            auditService.journaliser(ActionAudit.MODIFICATION, TypeEntite.PROPOSITION_EMBAUCHE,
+                    propositionId, null, response, auteur);
+            notificationService.notifierParRole(com.gntfh.sirh_api.auth.enums.Role.RH,
+                    TypeNotification.PROPOSITION_REPONDUE, "Proposition acceptée",
+                    "La proposition a été acceptée pour le matricule " + employe.getMatricule() + ".",
+                    TypeEntite.PROPOSITION_EMBAUCHE, propositionId);
+            return new ReponsePropositionResultat(response, employe.getId(), employe.getMatricule(), contrat.getId());
+        } catch (java.io.IOException exception) {
+            throw new BusinessRuleException("Impossible d'archiver la fiche salarié.");
+        }
     }
 
     /**
@@ -100,7 +156,20 @@ public class EmbaucheServiceImpl implements EmbaucheService {
     @Override
     @Transactional
     public PropositionEmbaucheResponse refuser(Long propositionId, String motif, String auteur) {
-        throw todo("EMB-08");
+        if (motif == null || motif.isBlank()) {
+            throw new BusinessRuleException("Le motif de refus est obligatoire (EMB-08).");
+        }
+        var proposition = charger(propositionId);
+        changerStatut(proposition, StatutProposition.REFUSEE, auteur, motif);
+        proposition.setDateReponse(java.time.Instant.now());
+        proposition.setMotifRefus(motif);
+        candidatureService.marquerNonRetenueApresProposition(
+                proposition.getCandidature().getId(), auteur, motif);
+        var response = mapper.toResponse(proposition);
+        notificationService.notifierParRole(com.gntfh.sirh_api.auth.enums.Role.RH,
+                TypeNotification.PROPOSITION_REPONDUE, "Proposition refusée",
+                "La proposition d'embauche a été refusée.", TypeEntite.PROPOSITION_EMBAUCHE, propositionId);
+        return response;
     }
 
     /**
@@ -112,7 +181,16 @@ public class EmbaucheServiceImpl implements EmbaucheService {
     @Override
     @Transactional
     public PropositionEmbaucheResponse demanderDelai(Long propositionId, String auteur) {
-        throw todo("RG-28");
+        var proposition = charger(propositionId);
+        if (!proposition.getStatut().peutPasserA(StatutProposition.DELAI_ACCORDE)
+                || proposition.getNbProlongationsDelai() >= 1) {
+            throw new BusinessRuleException("Une seule prolongation de délai est autorisée (RG-28).");
+        }
+        proposition.setDateLimiteReponse(proposition.getDateLimiteReponse()
+                .plusDays(sirhProperties.proposition().dureeProlongationJours()));
+        proposition.setNbProlongationsDelai(1);
+        changerStatut(proposition, StatutProposition.DELAI_ACCORDE, auteur, null);
+        return mapper.toResponse(proposition);
     }
 
     /**
@@ -122,6 +200,33 @@ public class EmbaucheServiceImpl implements EmbaucheService {
     @Override
     @Transactional
     public int expirerPropositionsEchues(LocalDate aujourdhui) {
-        throw todo("RG-29");
+        int traitees = 0;
+        for (var proposition : propositionRepository.findEchues(aujourdhui)) {
+            changerStatut(proposition, StatutProposition.EXPIREE, "SYSTEME", "Délai de réponse expiré");
+            candidatureService.marquerNonRetenueApresProposition(
+                    proposition.getCandidature().getId(), "SYSTEME", "Proposition expirée");
+            notificationService.notifierParRole(com.gntfh.sirh_api.auth.enums.Role.RH,
+                    TypeNotification.PROPOSITION_EXPIREE, "Proposition expirée",
+                    "Une proposition d'embauche est arrivée à échéance.",
+                    TypeEntite.PROPOSITION_EMBAUCHE, proposition.getId());
+            traitees++;
+        }
+        return traitees;
+    }
+
+    private PropositionEmbauche charger(Long id) {
+        return propositionRepository.findById(id)
+                .orElseThrow(() -> ResourceNotFoundException.of("PropositionEmbauche", id));
+    }
+
+    private void changerStatut(PropositionEmbauche proposition, StatutProposition cible,
+                               String auteur, String commentaire) {
+        var ancien = proposition.getStatut();
+        if (!ancien.peutPasserA(cible)) {
+            throw new InvalidStateTransitionException("PropositionEmbauche", ancien, cible);
+        }
+        proposition.setStatut(cible);
+        historiqueStatutService.enregistrer(TypeEntite.PROPOSITION_EMBAUCHE, proposition.getId(),
+                ancien.name(), cible.name(), auteur, commentaire);
     }
 }

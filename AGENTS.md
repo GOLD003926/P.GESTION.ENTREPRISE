@@ -18,7 +18,7 @@ La spécification du module prime sur toute intuition. **Ne jamais inventer** d'
 
 | Élément        | Valeur                                                                      |
 | -------------- | --------------------------------------------------------------------------- |
-| Langage        | Java 21 (records, `switch` à motifs autorisés)                              |
+| Langage        | Java 25 LTS (records, `switch` à motifs autorisés)                           |
 | Framework      | Spring Boot 4.1.1, Spring Data JPA (Hibernate 7), Spring Security 7, Flyway |
 | Base           | PostgreSQL 16                                                               |
 | Package racine | `com.gntfh.sirh_api`                                                        |
